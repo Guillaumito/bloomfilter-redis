@@ -54,14 +54,14 @@ class TimeSeriesBloomFilter(object):
         for x in xrange(num_filters):
             filter_date = block_now - x * self.time_resolution
             filter_bitvector_key = '%s|%s' % (self.bitvector_key, filter_date.isoformat())
-            yield BloomFilter(self.connection, filter_bitvector_key, self.n, self.k)
+            yield filter_date, BloomFilter(self.connection, filter_bitvector_key, self.n, self.k)
 
     def add(self, key, **kwargs):
         within = kwargs.get('within', self.time_resolution)
         now = kwargs.get('now', datetime.now())
 
         # add to the current bloom filter
-        for bloom_filter in self.most_current_filters(within=within, now=now):
+        for stamp, bloom_filter in self.most_current_filters(within=within, now=now):
             # we'll expire the bloom filter we're setting to after 'limit' + 1 seconds
             bloom_filter.add(key, timeout=self.time_limit_seconds+1)
 
@@ -70,22 +70,26 @@ class TimeSeriesBloomFilter(object):
         now = kwargs.get('now', datetime.now())
 
         # delete from the time series bloomfilters
-        for bloom_filter in self.most_current_filters(within=within, now=now):
+        for stamp, bloom_filter in self.most_current_filters(within=within, now=now):
             # in case of creating new filter when deleting, so check first
             if key in bloom_filter:
                 bloom_filter.delete(key)
 
-    def __contains__(self, key, **kwargs):
+    def last_seen(self, key, **kwargs):
         # checks if this time series bloom filter has
         # contained an element within the last x minutes
+        # returns the timestamp when element was last seen
         within = kwargs.get('within', self.time_limit)
         now = kwargs.get('now', datetime.now())
 
-        for i,bloom_filter in enumerate(self.most_current_filters(within=within, now=now)):
+        for stamp, bloom_filter in self.most_current_filters(within=within, now=now):
             if key in bloom_filter:
-                return True
+                return stamp
         else:
-            return False
+            return None
+
+    def __contains__(self, key, **kwargs):
+        return None != self.last_seen(key, **kwargs)
 
     # lookup support for the 'within' parameter that we can't express in the magic __contains__
     contains = __contains__
