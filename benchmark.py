@@ -4,7 +4,7 @@ import sys
 
 from datetime import datetime
 
-from bloomfilter import BloomFilter, TimeSeriesBloomFilter
+from disbloom import BloomFilter, TimeSeriesBloomFilter
 
 connection = redis.Redis()
 

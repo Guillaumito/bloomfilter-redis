@@ -5,7 +5,7 @@ import unittest
 
 from datetime import datetime,timedelta
 
-from bloomfilter import BloomFilter, TimeSeriesBloomFilter
+from disbloom import BloomFilter, TimeSeriesBloomFilter
 
 class SimpleTestCase(unittest.TestCase):
     def setUp(self):
